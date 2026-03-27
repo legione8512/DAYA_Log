@@ -1,4 +1,4 @@
-package com.dayalog;
+package ro.daya.dayalog;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
