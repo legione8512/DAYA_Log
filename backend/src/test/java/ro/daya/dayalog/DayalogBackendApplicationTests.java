@@ -1,13 +1,12 @@
 package ro.daya.dayalog;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class DayalogBackendApplicationTests {
+import ro.daya.dayalog.support.AbstractPostgresIntegrationTest;
 
-	@Test
-	void contextLoads() {
-	}
+class DayalogBackendApplicationTests extends AbstractPostgresIntegrationTest {
 
+    @Test
+    void contextLoads() {
+    }
 }
