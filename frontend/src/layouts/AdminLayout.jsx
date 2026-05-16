@@ -1,4 +1,4 @@
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "../styles/layout.css";
 
@@ -6,9 +6,9 @@ export default function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/autentificare");
+  const handleLogout = async () => {
+    await logout();
+    navigate("/autentificare", { replace: true });
   };
 
   return (
@@ -20,16 +20,21 @@ export default function AdminLayout() {
         </div>
 
         <nav className="sidebar-nav">
-          <Link to="/admin">Dashboard</Link>
-          <Link to="/admin/programari">Programări</Link>
-          <Link to="/admin/clienti">Clienți</Link>
+          <NavLink to="/admin" end>Dashboard</NavLink>
+          <NavLink to="/admin/programari">Programări</NavLink>
+          <NavLink to="/admin/clienti">Clienți</NavLink>
+          <NavLink to="/admin/servicii">Servicii</NavLink>
+          <NavLink to="/admin/instructori">Instructori</NavLink>
+          <NavLink to="/admin/resurse">Resurse</NavLink>
+          <NavLink to="/admin/audit">Audit</NavLink>
+          <NavLink to="/profil">Profil</NavLink>
         </nav>
       </aside>
 
       <div className="main-shell">
         <header className="topbar">
           <div>
-            <strong>{user?.firstName} {user?.lastName}</strong>
+            <strong>{user?.role === "ADMIN" ? "Administrator" : "Utilizator"}</strong>
             <p>{user?.email}</p>
           </div>
 

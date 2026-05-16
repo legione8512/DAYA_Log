@@ -20,7 +20,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     @EntityGraph(attributePaths = { "service", "instructor", "resource", "participants", "participants.client" })
     Optional<Appointment> findByIdAndStudioId(UUID id, UUID studioId);
 
-    @EntityGraph(attributePaths = { "service", "instructor", "resource", "participants" })
+    @EntityGraph(attributePaths = { "service", "instructor", "resource", "participants", "participants.client" })
     List<Appointment> findByStudioIdOrderByStartAtAsc(UUID studioId);
 
     @EntityGraph(attributePaths = { "service", "instructor", "resource" })

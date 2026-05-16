@@ -1,21 +1,41 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-// I use this component to block routes for users who are not logged in
-// or who do not have the correct role.
 export default function ProtectedRoute({ allowedRoles }) {
   const { user, loading, isAuthenticated } = useAuth();
+  const location = useLocation();
 
   if (loading) {
-    return <div style={{ padding: "40px" }}>Se încarcă...</div>;
+    return (
+      <main className="state-page">
+        <section className="state-card state-card-small">
+          <div className="loading-dot-row" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+          <h1>Se încarcă sesiunea</h1>
+          <p className="muted-text">Verificăm autentificarea înainte de a deschide pagina.</p>
+        </section>
+      </main>
+    );
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/autentificare" replace />;
+    return <Navigate to="/autentificare" replace state={{ from: location }} />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to={user.role === "ADMIN" ? "/admin" : "/client"} replace />;
+    return (
+      <Navigate
+        to="/neautorizat"
+        replace
+        state={{
+          from: location,
+          allowedRoles,
+        }}
+      />
+    );
   }
 
   return <Outlet />;

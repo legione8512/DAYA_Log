@@ -1,4 +1,4 @@
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "../styles/layout.css";
 
@@ -6,9 +6,9 @@ export default function ClientLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/autentificare");
+  const handleLogout = async () => {
+    await logout();
+    navigate("/autentificare", { replace: true });
   };
 
   return (
@@ -20,15 +20,16 @@ export default function ClientLayout() {
         </div>
 
         <nav className="sidebar-nav">
-          <Link to="/client">Panou principal</Link>
-          <Link to="/client/programarile-mele">Programările mele</Link>
+          <NavLink to="/client" end>Panou principal</NavLink>
+          <NavLink to="/client/programarile-mele">Programările mele</NavLink>
+          <NavLink to="/profil">Profil</NavLink>
         </nav>
       </aside>
 
       <div className="main-shell">
         <header className="topbar">
           <div>
-            <strong>{user?.firstName} {user?.lastName}</strong>
+            <strong>Client</strong>
             <p>{user?.email}</p>
           </div>
 

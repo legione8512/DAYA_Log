@@ -82,35 +82,41 @@ public class AppointmentService {
         OffsetDateTime fromAt = request.getDateFrom() == null ? null : startOfDay(request.getDateFrom());
         OffsetDateTime toAt = request.getDateTo() == null ? null : startOfNextDay(request.getDateTo());
 
-        PageRequest pageable = PageRequest.of(
-                request.getPage(),
-                request.getSize(),
-                Sort.by(Sort.Direction.ASC, "startAt")
-        );
+        List<Appointment> filteredAppointments = appointmentRepository
+                .findByStudioIdOrderByStartAtAsc(principal.getStudioId())
+                .stream()
+                .filter(appointment -> matchesListFilters(
+                        appointment,
+                        fromAt,
+                        toAt,
+                        status,
+                        appointmentType,
+                        request.getServiceId(),
+                        request.getInstructorId(),
+                        request.getClientId()
+                ))
+                .toList();
 
-        Page<Appointment> page = appointmentRepository.searchForList(
-                principal.getStudioId(),
-                fromAt,
-                toAt,
-                status,
-                appointmentType,
-                request.getServiceId(),
-                request.getInstructorId(),
-                request.getClientId(),
-                pageable
-        );
+        int page = request.getPage();
+        int size = request.getSize();
+        int fromIndex = Math.min(page * size, filteredAppointments.size());
+        int toIndex = Math.min(fromIndex + size, filteredAppointments.size());
+        int totalPages = filteredAppointments.isEmpty()
+                ? 0
+                : (int) Math.ceil((double) filteredAppointments.size() / size);
 
-        List<AppointmentListResponseItem> content = page.getContent()
+        List<AppointmentListResponseItem> content = filteredAppointments
+                .subList(fromIndex, toIndex)
                 .stream()
                 .map(this::toListItem)
                 .toList();
 
         return new PagedResponse<>(
                 content,
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements(),
-                page.getTotalPages()
+                page,
+                size,
+                filteredAppointments.size(),
+                totalPages
         );
     }
 
@@ -748,6 +754,48 @@ public class AppointmentService {
         	        "Filtrul de dată este invalid. dateFrom nu poate fi după dateTo."
         	);        }
     }
+
+    private boolean matchesListFilters(Appointment appointment,
+                                       OffsetDateTime fromAt,
+                                       OffsetDateTime toAt,
+                                       AppointmentStatus status,
+                                       AppointmentType appointmentType,
+                                       UUID serviceId,
+                                       UUID instructorId,
+                                       UUID clientId) {
+        if (fromAt != null && appointment.getStartAt().isBefore(fromAt)) {
+            return false;
+        }
+
+        if (toAt != null && !appointment.getStartAt().isBefore(toAt)) {
+            return false;
+        }
+
+        if (status != null && appointment.getStatus() != status) {
+            return false;
+        }
+
+        if (appointmentType != null && appointment.getAppointmentType() != appointmentType) {
+            return false;
+        }
+
+        if (serviceId != null && !serviceId.equals(appointment.getService().getId())) {
+            return false;
+        }
+
+        if (instructorId != null && !instructorId.equals(appointment.getInstructor().getId())) {
+            return false;
+        }
+
+        if (clientId != null) {
+            return appointment.getParticipants()
+                    .stream()
+                    .anyMatch(participant -> clientId.equals(participant.getClient().getId()));
+        }
+
+        return true;
+    }
+
 
     private AppointmentStatus parseAppointmentStatus(String value) {
         if (value == null || value.isBlank()) {

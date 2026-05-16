@@ -1,18 +1,42 @@
 import axios from "axios";
+import {
+  clearAuthStorage,
+  getAccessToken,
+  saveAccessToken,
+  shouldRememberSession,
+} from "../utils/authStorage";
 
-// I create one Axios instance so all requests use the same API base URL.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
+
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// I read the token from localStorage first, then from sessionStorage.
+let refreshPromise = null;
+
+function shouldSkipRefresh(url = "") {
+  return [
+    "/auth/login",
+    "/auth/refresh",
+    "/auth/logout",
+    "/auth/password-reset/request",
+    "/auth/password-reset/confirm",
+    "/auth/confirm-email",
+  ].some((publicPath) => url.includes(publicPath));
+}
+
+function notifyAuthExpired() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("daya:auth-expired"));
+  }
+}
+
 axiosClient.interceptors.request.use((config) => {
-  const token =
-    localStorage.getItem("daya_access_token") ||
-    sessionStorage.getItem("daya_access_token");
+  const token = getAccessToken();
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -20,5 +44,57 @@ axiosClient.interceptors.request.use((config) => {
 
   return config;
 });
+
+axiosClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    const status = error.response?.status;
+
+    if (
+      status !== 401 ||
+      !originalRequest ||
+      originalRequest._retry ||
+      shouldSkipRefresh(originalRequest.url)
+    ) {
+      return Promise.reject(error);
+    }
+
+    originalRequest._retry = true;
+
+    try {
+      if (!refreshPromise) {
+        refreshPromise = axios
+          .post(`${API_BASE_URL}/auth/refresh`, null, {
+            withCredentials: true,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          })
+          .finally(() => {
+            refreshPromise = null;
+          });
+      }
+
+      const refreshResponse = await refreshPromise;
+      const newAccessToken = refreshResponse.data?.accessToken;
+
+      if (!newAccessToken) {
+        throw new Error("Refresh response did not contain an access token.");
+      }
+
+      saveAccessToken(newAccessToken, shouldRememberSession());
+
+      originalRequest.headers = originalRequest.headers || {};
+      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+      return axiosClient(originalRequest);
+    } catch (refreshError) {
+      clearAuthStorage();
+      notifyAuthExpired();
+      return Promise.reject(refreshError);
+    }
+  }
+);
 
 export default axiosClient;

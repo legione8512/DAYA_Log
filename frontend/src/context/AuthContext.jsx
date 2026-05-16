@@ -1,90 +1,121 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import axiosClient from "../api/axiosClient";
+import { loginRequest, logoutRequest, refreshRequest } from "../api/authApi";
+import { getCurrentUser } from "../api/profileApi";
+import {
+  clearAuthStorage,
+  getAccessToken,
+  saveAccessToken,
+  shouldRememberSession,
+} from "../utils/authStorage";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [accessToken, setAccessToken] = useState(getAccessToken());
 
-  // I restore the saved user from localStorage when the app starts.
   useEffect(() => {
-    const savedUser = localStorage.getItem("daya_user");
+    const handleAuthExpired = () => {
+      clearAuthStorage();
+      setAccessToken(null);
+      setUser(null);
+    };
 
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    window.addEventListener("daya:auth-expired", handleAuthExpired);
 
-    setLoading(false);
+    return () => {
+      window.removeEventListener("daya:auth-expired", handleAuthExpired);
+    };
   }, []);
 
-  // I keep login logic here so every page can use the same auth state.
+  useEffect(() => {
+    let isMounted = true;
+
+    async function restoreSession() {
+      try {
+        const savedToken = getAccessToken();
+
+        if (savedToken) {
+          const currentUser = await getCurrentUser();
+
+          if (isMounted) {
+            setUser(currentUser);
+            setAccessToken(savedToken);
+          }
+
+          return;
+        }
+
+        const refreshed = await refreshRequest();
+        saveAccessToken(refreshed.accessToken, shouldRememberSession());
+
+        const currentUser = await getCurrentUser();
+
+        if (isMounted) {
+          setAccessToken(refreshed.accessToken);
+          setUser(currentUser);
+        }
+      } catch {
+        clearAuthStorage();
+
+        if (isMounted) {
+          setAccessToken(null);
+          setUser(null);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    restoreSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const login = async (email, password, rememberMe) => {
-    const response = await axiosClient.post("/auth/login", {
-      email,
-      password,
-      rememberMe,
-    });
+    const result = await loginRequest({ email, password, rememberMe });
 
-    const { accessToken, refreshToken, user } = response.data;
+    saveAccessToken(result.accessToken, rememberMe);
+    setAccessToken(result.accessToken);
+    setUser(result.user);
 
-    if (rememberMe) {
-      localStorage.setItem("daya_access_token", accessToken);
-      localStorage.setItem("daya_refresh_token", refreshToken);
-      localStorage.setItem("daya_user", JSON.stringify(user));
-    } else {
-      sessionStorage.setItem("daya_access_token", accessToken);
-      sessionStorage.setItem("daya_refresh_token", refreshToken);
-      sessionStorage.setItem("daya_user", JSON.stringify(user));
-    }
-
-    localStorage.removeItem("daya_access_token");
-    localStorage.removeItem("daya_refresh_token");
-    localStorage.removeItem("daya_user");
-
-    if (rememberMe) {
-      localStorage.setItem("daya_access_token", accessToken);
-      localStorage.setItem("daya_refresh_token", refreshToken);
-      localStorage.setItem("daya_user", JSON.stringify(user));
-    } else {
-      sessionStorage.setItem("daya_access_token", accessToken);
-      sessionStorage.setItem("daya_refresh_token", refreshToken);
-      sessionStorage.setItem("daya_user", JSON.stringify(user));
-    }
-
-    setUser(user);
-    return user;
+    return result.user;
   };
 
-  // I clear both localStorage and sessionStorage to make logout simple.
-  const logout = () => {
-    localStorage.removeItem("daya_access_token");
-    localStorage.removeItem("daya_refresh_token");
-    localStorage.removeItem("daya_user");
-
-    sessionStorage.removeItem("daya_access_token");
-    sessionStorage.removeItem("daya_refresh_token");
-    sessionStorage.removeItem("daya_user");
-
-    setUser(null);
+  const logout = async () => {
+    try {
+      await logoutRequest();
+    } finally {
+      clearAuthStorage();
+      setAccessToken(null);
+      setUser(null);
+    }
   };
 
-  const isAuthenticated = !!user;
+  const isAuthenticated = !!user && !!accessToken;
 
   const value = useMemo(
     () => ({
       user,
       loading,
+      accessToken,
       isAuthenticated,
       login,
       logout,
     }),
-    [user, loading, isAuthenticated]
+    [user, loading, accessToken, isAuthenticated]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// This project keeps the auth hook beside the provider for beginner readability.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   return useContext(AuthContext);
 }

@@ -1,10 +1,20 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { getApiErrorMessage } from "../utils/apiErrors";
+
+function getDefaultPath(authenticatedUser) {
+  if (authenticatedUser?.forcePasswordChange) {
+    return "/profil";
+  }
+
+  return authenticatedUser?.role === "ADMIN" ? "/admin" : "/client";
+}
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, user, loading: sessionLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [form, setForm] = useState({
     email: "",
@@ -17,11 +27,28 @@ export default function LoginPage() {
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
+
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
+
+  const getRedirectPath = (authenticatedUser) => {
+    const requestedPath = location.state?.from?.pathname;
+
+    if (requestedPath && requestedPath !== "/autentificare") {
+      return requestedPath;
+    }
+
+    return getDefaultPath(authenticatedUser);
+  };
+
+  useEffect(() => {
+    if (!sessionLoading && isAuthenticated) {
+      navigate(getDefaultPath(user), { replace: true });
+    }
+  }, [sessionLoading, isAuthenticated, user, navigate]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -29,17 +56,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const user = await login(form.email, form.password, form.rememberMe);
-
-      if (user.role === "ADMIN") {
-        navigate("/admin");
-      } else {
-        navigate("/client");
-      }
+      const user = await login(form.email.trim(), form.password, form.rememberMe);
+      navigate(getRedirectPath(user), { replace: true });
     } catch (err) {
-      setError(
-        err?.response?.data?.message || "Autentificarea a eșuat. Verifică datele introduse."
-      );
+      setError(getApiErrorMessage(err, "Autentificarea a eșuat. Verifică datele introduse."));
     } finally {
       setLoading(false);
     }
@@ -59,6 +79,8 @@ export default function LoginPage() {
             placeholder="exemplu@email.ro"
             value={form.email}
             onChange={handleChange}
+            autoComplete="email"
+            required
           />
         </label>
 
@@ -70,6 +92,8 @@ export default function LoginPage() {
             placeholder="Introdu parola"
             value={form.password}
             onChange={handleChange}
+            autoComplete="current-password"
+            required
           />
         </label>
 
@@ -89,6 +113,10 @@ export default function LoginPage() {
           {loading ? "Se autentifică..." : "Intră în cont"}
         </button>
       </form>
+
+      <p className="muted-text auth-helper-text">
+        Ai uitat parola? <Link to="/resetare-parola">Resetează parola</Link>
+      </p>
     </div>
   );
 }
