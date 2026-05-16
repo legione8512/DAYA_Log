@@ -47,6 +47,30 @@ export function AuthProvider({ children }) {
           return;
         }
 
+        const publicAuthPaths = [
+          "/autentificare",
+          "/login",
+          "/resetare-parola",
+          "/resetare-parola/confirmare",
+          "/confirmare-email",
+        ];
+
+        const currentPath = window.location.pathname;
+        const isPublicAuthPage = publicAuthPaths.some((path) =>
+          currentPath.startsWith(path),
+        );
+
+        if (isPublicAuthPage) {
+          clearAuthStorage();
+
+          if (isMounted) {
+            setAccessToken(null);
+            setUser(null);
+          }
+
+          return;
+        }
+
         const refreshed = await refreshRequest();
         saveAccessToken(refreshed.accessToken, shouldRememberSession());
 
@@ -108,7 +132,7 @@ export function AuthProvider({ children }) {
       login,
       logout,
     }),
-    [user, loading, accessToken, isAuthenticated]
+    [user, loading, accessToken, isAuthenticated],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -30,6 +30,16 @@ export async function updateClientStatus(id, active) {
 }
 
 export async function createClientUserAccount(id, payload) {
-  const response = await axiosClient.post(`/admin/clients/${id}/create-user-account`, payload);
+  const response = await axiosClient.post(
+    `/admin/clients/${id}/create-user-account`,
+    payload,
+  );
+  return response.data;
+}
+export async function resetClientPassword(id, payload) {
+  const response = await axiosClient.post(
+    `/admin/clients/${id}/reset-password`,
+    payload,
+  );
   return response.data;
 }

@@ -14,9 +14,18 @@ import {
 } from "../../api/appointmentApi";
 import { searchClients } from "../../api/clientApi";
 import { getApiErrorMessage } from "../../utils/apiErrors";
-import { formatAppointmentInterval, formatDateTime } from "../../utils/dateTime";
+import {
+  formatAppointmentInterval,
+  formatDateTime,
+} from "../../utils/dateTime";
 
-const STATUS_OPTIONS = ["SCHEDULED", "CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW"];
+const STATUS_OPTIONS = [
+  "SCHEDULED",
+  "CONFIRMED",
+  "COMPLETED",
+  "CANCELLED",
+  "NO_SHOW",
+];
 
 export default function AppointmentDetailsPage() {
   const { id } = useParams();
@@ -53,7 +62,9 @@ export default function AppointmentDetailsPage() {
     try {
       await Promise.all([loadAppointment(), loadWaitlist()]);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Nu am putut încărca detaliile programării."));
+      setError(
+        getApiErrorMessage(err, "Nu am putut încărca detaliile programării."),
+      );
     } finally {
       setLoading(false);
     }
@@ -66,7 +77,9 @@ export default function AppointmentDetailsPage() {
       const data = await searchClients({ query, active: true });
       setClients(Array.isArray(data) ? data : data.content || []);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Nu am putut încărca lista de clienți."));
+      setError(
+        getApiErrorMessage(err, "Nu am putut încărca lista de clienți."),
+      );
     } finally {
       setLoadingClients(false);
     }
@@ -89,27 +102,39 @@ export default function AppointmentDetailsPage() {
   }, [clientQuery, loadClients]);
 
   const participantIds = useMemo(
-    () => new Set((appointment?.participants || []).map((participant) => participant.clientId)),
-    [appointment]
+    () =>
+      new Set(
+        (appointment?.participants || []).map(
+          (participant) => participant.clientId,
+        ),
+      ),
+    [appointment],
   );
 
   const waitlistClientIds = useMemo(
     () => new Set(waitlist.map((entry) => entry.clientId)),
-    [waitlist]
+    [waitlist],
   );
 
   const availableClientsForParticipants = useMemo(
     () => clients.filter((client) => !participantIds.has(client.id)),
-    [clients, participantIds]
+    [clients, participantIds],
   );
 
   const availableClientsForWaitlist = useMemo(
-    () => clients.filter((client) => !participantIds.has(client.id) && !waitlistClientIds.has(client.id)),
-    [clients, participantIds, waitlistClientIds]
+    () =>
+      clients.filter(
+        (client) =>
+          !participantIds.has(client.id) && !waitlistClientIds.has(client.id),
+      ),
+    [clients, participantIds, waitlistClientIds],
   );
 
   const isGroup = appointment?.appointmentType === "GROUP";
   const isCancelled = appointment?.status === "CANCELLED";
+
+  const lockedMessage =
+    "Programarea este anulată. Statusul este final și nu mai poate fi modificat. Dacă vrei să refaci rezervarea, creează o programare nouă.";
 
   const runAction = async (actionName, action, fallbackMessage) => {
     setActionLoading(actionName);
@@ -130,15 +155,28 @@ export default function AppointmentDetailsPage() {
     runAction(
       "send-confirmation",
       async () => {
-        const response = await sendAppointmentConfirmation(id);
-        setSuccess(response?.message || "Emailul de confirmare a fost trimis.");
+        await sendAppointmentConfirmation(id);
       },
-      "Emailul de confirmare a fost trimis."
+      "Emailul de confirmare a fost trimis. Statusul programării nu a fost schimbat automat.",
+    );
+  };
+
+  const handleMarkConfirmed = () => {
+    runAction(
+      "mark-confirmed",
+      async () => {
+        const updated = await changeAppointmentStatus(id, "CONFIRMED");
+        setAppointment(updated);
+        setStatus(updated.status || "");
+      },
+      "Programarea a fost marcată ca CONFIRMED.",
     );
   };
 
   const handleCancel = () => {
-    const confirmed = window.confirm("Sigur vrei să anulezi această programare?");
+    const confirmed = window.confirm(
+      "Sigur vrei să anulezi această programare?",
+    );
 
     if (!confirmed) {
       return;
@@ -147,14 +185,21 @@ export default function AppointmentDetailsPage() {
     runAction(
       "cancel",
       async () => {
-        await cancelAppointment(id, { reason: "Anulată din pagina de detalii." });
+        await cancelAppointment(id, {
+          reason: "Anulată din pagina de detalii.",
+        });
         await loadAppointment();
       },
-      "Programarea a fost anulată."
+      "Programarea a fost anulată.",
     );
   };
 
   const handleChangeStatus = () => {
+    if (isCancelled) {
+      setError(lockedMessage);
+      return;
+    }
+
     if (!status || status === appointment.status) {
       setError("Alege un status diferit înainte de salvare.");
       return;
@@ -167,7 +212,7 @@ export default function AppointmentDetailsPage() {
         setAppointment(updated);
         setStatus(updated.status || "");
       },
-      "Statusul programării a fost actualizat."
+      "Statusul programării a fost actualizat.",
     );
   };
 
@@ -175,7 +220,7 @@ export default function AppointmentDetailsPage() {
     setSelectedClientIds((prev) =>
       prev.includes(clientId)
         ? prev.filter((idValue) => idValue !== clientId)
-        : [...prev, clientId]
+        : [...prev, clientId],
     );
   };
 
@@ -193,12 +238,14 @@ export default function AppointmentDetailsPage() {
         setSelectedClientIds([]);
         await loadWaitlist();
       },
-      "Participanții au fost adăugați."
+      "Participanții au fost adăugați.",
     );
   };
 
   const handleRemoveParticipant = (clientId) => {
-    const confirmed = window.confirm("Sigur vrei să elimini acest participant din programare?");
+    const confirmed = window.confirm(
+      "Sigur vrei să elimini acest participant din programare?",
+    );
 
     if (!confirmed) {
       return;
@@ -209,9 +256,11 @@ export default function AppointmentDetailsPage() {
       async () => {
         const updated = await removeAppointmentParticipant(id, clientId);
         setAppointment(updated);
-        setSelectedClientIds((prev) => prev.filter((item) => item !== clientId));
+        setSelectedClientIds((prev) =>
+          prev.filter((item) => item !== clientId),
+        );
       },
-      "Participantul a fost eliminat."
+      "Participantul a fost eliminat.",
     );
   };
 
@@ -224,16 +273,21 @@ export default function AppointmentDetailsPage() {
     runAction(
       "add-waitlist",
       async () => {
-        const updatedWaitlist = await addAppointmentWaitlistEntry(id, selectedWaitlistClientId);
+        const updatedWaitlist = await addAppointmentWaitlistEntry(
+          id,
+          selectedWaitlistClientId,
+        );
         setWaitlist(updatedWaitlist);
         setSelectedWaitlistClientId("");
       },
-      "Clientul a fost adăugat pe lista de așteptare."
+      "Clientul a fost adăugat pe lista de așteptare.",
     );
   };
 
   const handleRemoveWaitlistEntry = (waitlistEntryId) => {
-    const confirmed = window.confirm("Sigur vrei să elimini clientul din lista de așteptare?");
+    const confirmed = window.confirm(
+      "Sigur vrei să elimini clientul din lista de așteptare?",
+    );
 
     if (!confirmed) {
       return;
@@ -242,15 +296,20 @@ export default function AppointmentDetailsPage() {
     runAction(
       `remove-waitlist-${waitlistEntryId}`,
       async () => {
-        const updatedWaitlist = await removeAppointmentWaitlistEntry(id, waitlistEntryId);
+        const updatedWaitlist = await removeAppointmentWaitlistEntry(
+          id,
+          waitlistEntryId,
+        );
         setWaitlist(updatedWaitlist);
       },
-      "Clientul a fost eliminat din lista de așteptare."
+      "Clientul a fost eliminat din lista de așteptare.",
     );
   };
 
   const handlePromoteWaitlistEntry = (waitlistEntryId) => {
-    const confirmed = window.confirm("Sigur vrei să promovezi manual acest client în programare?");
+    const confirmed = window.confirm(
+      "Sigur vrei să promovezi manual acest client în programare?",
+    );
 
     if (!confirmed) {
       return;
@@ -259,16 +318,21 @@ export default function AppointmentDetailsPage() {
     runAction(
       `promote-waitlist-${waitlistEntryId}`,
       async () => {
-        const result = await promoteAppointmentWaitlistEntry(id, waitlistEntryId);
+        const result = await promoteAppointmentWaitlistEntry(
+          id,
+          waitlistEntryId,
+        );
         setAppointment(result.appointment);
         setWaitlist(result.waitlist || []);
       },
-      "Clientul a fost promovat manual din lista de așteptare."
+      "Clientul a fost promovat manual din lista de așteptare.",
     );
   };
 
   if (loading) {
-    return <div className="page-loading">Se încarcă detaliile programării...</div>;
+    return (
+      <div className="page-loading">Se încarcă detaliile programării...</div>
+    );
   }
 
   if (!appointment) {
@@ -294,16 +358,34 @@ export default function AppointmentDetailsPage() {
         <div>
           <p className="page-kicker">Administrare programări</p>
           <h1>Detalii programare</h1>
-          <p>{appointment.serviceName} · {appointment.instructorName}</p>
+          <p>
+            {appointment.serviceName} · {appointment.instructorName}
+          </p>
         </div>
         <div className="header-actions">
           <Link className="secondary-link-button" to="/admin/programari">
             Înapoi la listă
           </Link>
-          <Link className="secondary-link-button" to={`/admin/programari/${id}/editeaza`}>
-            Editează
-          </Link>
-          <button className="secondary-button" type="button" onClick={() => navigate("/admin/programari/noua")}>
+          {isCancelled ? (
+            <span
+              className="secondary-link-button disabled-link-button"
+              title={lockedMessage}
+            >
+              Editează
+            </span>
+          ) : (
+            <Link
+              className="secondary-link-button"
+              to={`/admin/programari/${id}/editeaza`}
+            >
+              Editează
+            </Link>
+          )}
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => navigate("/admin/programari/noua")}
+          >
             Programare nouă
           </button>
         </div>
@@ -318,10 +400,22 @@ export default function AppointmentDetailsPage() {
         <DetailItem label="Capacitate" value={appointment.capacity} />
         <DetailItem label="Serviciu" value={appointment.serviceName} />
         <DetailItem label="Instructor" value={appointment.instructorName} />
-        <DetailItem label="Resursă" value={appointment.resourceName || "Fără resursă"} />
-        <DetailItem label="Început" value={formatDateTime(appointment.startAt)} />
+        <DetailItem
+          label="Resursă"
+          value={appointment.resourceName || "Fără resursă"}
+        />
+        <DetailItem
+          label="Început"
+          value={formatDateTime(appointment.startAt)}
+        />
         <DetailItem label="Sfârșit" value={formatDateTime(appointment.endAt)} />
-        <DetailItem label="Interval" value={formatAppointmentInterval(appointment.startAt, appointment.endAt)} />
+        <DetailItem
+          label="Interval"
+          value={formatAppointmentInterval(
+            appointment.startAt,
+            appointment.endAt,
+          )}
+        />
       </div>
 
       {appointment.notes && (
@@ -334,25 +428,46 @@ export default function AppointmentDetailsPage() {
       <div className="content-card details-actions-card">
         <div>
           <h2>Acțiuni programare</h2>
-          <p className="muted-text">Aceste acțiuni folosesc regulile backend-ului pentru status, anulare și email.</p>
+          <p className="muted-text">
+            Trimiterea emailului și schimbarea statusului sunt acțiuni separate.
+            Emailul notifică clientul, dar nu confirmă automat programarea.
+          </p>
         </div>
+
+        {isCancelled && <div className="info-banner">{lockedMessage}</div>}
 
         <div className="details-action-row">
           <label>
             Schimbă statusul
-            <select value={status} onChange={(event) => setStatus(event.target.value)}>
+            <select
+              value={status}
+              disabled={isCancelled}
+              onChange={(event) => setStatus(event.target.value)}
+              title={isCancelled ? lockedMessage : undefined}
+            >
               {STATUS_OPTIONS.map((option) => (
-                <option key={option} value={option}>{option}</option>
+                <option key={option} value={option}>
+                  {option}
+                </option>
               ))}
             </select>
           </label>
           <button
             className="primary-button"
             type="button"
-            disabled={actionLoading === "change-status" || status === appointment.status}
+            disabled={
+              isCancelled ||
+              actionLoading === "change-status" ||
+              status === appointment.status
+            }
             onClick={handleChangeStatus}
+            title={isCancelled ? lockedMessage : undefined}
           >
-            {actionLoading === "change-status" ? "Se salvează..." : "Salvează status"}
+            {isCancelled
+              ? "Status blocat"
+              : actionLoading === "change-status"
+                ? "Se salvează..."
+                : "Salvează status"}
           </button>
         </div>
 
@@ -363,7 +478,19 @@ export default function AppointmentDetailsPage() {
             disabled={actionLoading === "send-confirmation" || isCancelled}
             onClick={handleSendConfirmation}
           >
-            Trimite confirmarea
+            Trimite email
+          </button>
+          <button
+            className="small-button"
+            type="button"
+            disabled={
+              actionLoading === "mark-confirmed" ||
+              appointment.status === "CONFIRMED" ||
+              isCancelled
+            }
+            onClick={handleMarkConfirmed}
+          >
+            Marchează CONFIRMED
           </button>
           <button
             className="small-button danger"
@@ -406,13 +533,16 @@ export default function AppointmentDetailsPage() {
               disabled={actionLoading === "add-participants" || isCancelled}
               onClick={handleAddParticipants}
             >
-              {actionLoading === "add-participants" ? "Se adaugă..." : "Adaugă participanți"}
+              {actionLoading === "add-participants"
+                ? "Se adaugă..."
+                : "Adaugă participanți"}
             </button>
           </div>
         </div>
       ) : (
         <div className="info-banner">
-          Programările individuale pot avea un singur participant. Pentru mai mulți participanți creează o programare de grup.
+          Programările individuale pot avea un singur participant. Pentru mai
+          mulți participanți creează o programare de grup.
         </div>
       )}
 
@@ -420,19 +550,23 @@ export default function AppointmentDetailsPage() {
         <div className="content-card">
           <h2>Listă de așteptare</h2>
           <p className="muted-text">
-            Aceasta este gestionare manuală. Nu există promovare automată din waitlist.
+            Aceasta este gestionare manuală. Nu există promovare automată din
+            waitlist.
           </p>
           <div className="details-action-row waitlist-add-row">
             <label>
               Client disponibil
               <select
                 value={selectedWaitlistClientId}
-                onChange={(event) => setSelectedWaitlistClientId(event.target.value)}
+                onChange={(event) =>
+                  setSelectedWaitlistClientId(event.target.value)
+                }
               >
                 <option value="">Selectează clientul</option>
                 {availableClientsForWaitlist.map((client) => (
                   <option key={client.id} value={client.id}>
-                    {client.fullName} · {client.email || client.phone || "fără contact"}
+                    {client.fullName} ·{" "}
+                    {client.email || client.phone || "fără contact"}
                   </option>
                 ))}
               </select>
@@ -443,7 +577,9 @@ export default function AppointmentDetailsPage() {
               disabled={actionLoading === "add-waitlist" || isCancelled}
               onClick={handleAddWaitlistEntry}
             >
-              {actionLoading === "add-waitlist" ? "Se adaugă..." : "Adaugă în waitlist"}
+              {actionLoading === "add-waitlist"
+                ? "Se adaugă..."
+                : "Adaugă în waitlist"}
             </button>
           </div>
           <WaitlistTable
@@ -470,10 +606,16 @@ function DetailItem({ label, value }) {
 
 function ParticipantsTable({ appointment, actionLoading, onRemove }) {
   const participants = appointment.participants || [];
-  const canRemove = appointment.appointmentType === "GROUP" && appointment.status !== "CANCELLED";
+  const canRemove =
+    appointment.appointmentType === "GROUP" &&
+    appointment.status !== "CANCELLED";
 
   if (!participants.length) {
-    return <div className="empty-state compact-empty">Nu există participanți în această programare.</div>;
+    return (
+      <div className="empty-state compact-empty">
+        Nu există participanți în această programare.
+      </div>
+    );
   }
 
   return (
@@ -490,12 +632,20 @@ function ParticipantsTable({ appointment, actionLoading, onRemove }) {
           {participants.map((participant) => (
             <tr key={participant.clientId}>
               <td>{participant.fullName}</td>
-              <td><span className="status-pill">{participant.participationStatus}</span></td>
+              <td>
+                <span className="status-pill">
+                  {participant.participationStatus}
+                </span>
+              </td>
               <td>
                 <button
                   className="small-button danger"
                   type="button"
-                  disabled={!canRemove || actionLoading === `remove-participant-${participant.clientId}`}
+                  disabled={
+                    !canRemove ||
+                    actionLoading ===
+                      `remove-participant-${participant.clientId}`
+                  }
                   onClick={() => onRemove(participant.clientId)}
                 >
                   Elimină
@@ -537,15 +687,22 @@ function SelectableClientList({ clients, selectedIds, onToggle, emptyText }) {
         return (
           <button
             key={client.id}
-            className={selected ? "client-picker-item selected" : "client-picker-item"}
+            className={
+              selected ? "client-picker-item selected" : "client-picker-item"
+            }
             type="button"
             onClick={() => onToggle(client.id)}
           >
             <span className="client-picker-main">
               <strong>{client.fullName}</strong>
-              <small>{client.email || "Fără email"} · {client.phone || "Fără telefon"}</small>
+              <small>
+                {client.email || "Fără email"} ·{" "}
+                {client.phone || "Fără telefon"}
+              </small>
             </span>
-            <span className="status-pill">{selected ? "Selectat" : "Selectează"}</span>
+            <span className="status-pill">
+              {selected ? "Selectat" : "Selectează"}
+            </span>
           </button>
         );
       })}
@@ -553,9 +710,19 @@ function SelectableClientList({ clients, selectedIds, onToggle, emptyText }) {
   );
 }
 
-function WaitlistTable({ waitlist, actionLoading, isCancelled, onRemove, onPromote }) {
+function WaitlistTable({
+  waitlist,
+  actionLoading,
+  isCancelled,
+  onRemove,
+  onPromote,
+}) {
   if (!waitlist.length) {
-    return <div className="empty-state compact-empty">Nu există clienți în lista de așteptare.</div>;
+    return (
+      <div className="empty-state compact-empty">
+        Nu există clienți în lista de așteptare.
+      </div>
+    );
   }
 
   return (
@@ -575,14 +742,19 @@ function WaitlistTable({ waitlist, actionLoading, isCancelled, onRemove, onPromo
             <tr key={entry.id}>
               <td>{entry.position}</td>
               <td>{entry.clientFullName}</td>
-              <td><span className="status-pill">{entry.status}</span></td>
+              <td>
+                <span className="status-pill">{entry.status}</span>
+              </td>
               <td>{formatDateTime(entry.createdAt)}</td>
               <td>
                 <div className="row-actions">
                   <button
                     className="small-button"
                     type="button"
-                    disabled={isCancelled || actionLoading === `promote-waitlist-${entry.id}`}
+                    disabled={
+                      isCancelled ||
+                      actionLoading === `promote-waitlist-${entry.id}`
+                    }
                     onClick={() => onPromote(entry.id)}
                   >
                     Promovează manual
@@ -590,8 +762,16 @@ function WaitlistTable({ waitlist, actionLoading, isCancelled, onRemove, onPromo
                   <button
                     className="small-button danger"
                     type="button"
-                    disabled={actionLoading === `remove-waitlist-${entry.id}`}
+                    disabled={
+                      isCancelled ||
+                      actionLoading === `remove-waitlist-${entry.id}`
+                    }
                     onClick={() => onRemove(entry.id)}
+                    title={
+                      isCancelled
+                        ? "Programarea este anulată, deci lista de așteptare nu mai poate fi modificată."
+                        : undefined
+                    }
                   >
                     Elimină
                   </button>

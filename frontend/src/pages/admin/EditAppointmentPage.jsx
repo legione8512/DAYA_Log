@@ -28,7 +28,11 @@ export default function EditAppointmentPage() {
 
   const [form, setForm] = useState(EMPTY_FORM);
   const [appointment, setAppointment] = useState(null);
-  const [options, setOptions] = useState({ services: [], instructors: [], resources: [] });
+  const [options, setOptions] = useState({
+    services: [],
+    instructors: [],
+    resources: [],
+  });
   const [clients, setClients] = useState([]);
   const [selectedClients, setSelectedClients] = useState([]);
   const [clientQuery, setClientQuery] = useState("");
@@ -40,7 +44,7 @@ export default function EditAppointmentPage() {
 
   const selectedService = useMemo(
     () => options.services.find((service) => service.id === form.serviceId),
-    [options.services, form.serviceId]
+    [options.services, form.serviceId],
   );
 
   const clientsToDisplay = useMemo(() => {
@@ -82,10 +86,17 @@ export default function EditAppointmentPage() {
         resources: optionsData.resources || [],
       });
       setForm(fromAppointmentToForm(appointmentData));
-      setSelectedClients((appointmentData.participants || []).map(toClientPickerItem));
+      setSelectedClients(
+        (appointmentData.participants || []).map(toClientPickerItem),
+      );
       await loadClients("");
     } catch (err) {
-      setError(getApiErrorMessage(err, "Nu am putut încărca programarea pentru editare."));
+      setError(
+        getApiErrorMessage(
+          err,
+          "Nu am putut încărca programarea pentru editare.",
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -98,7 +109,9 @@ export default function EditAppointmentPage() {
       const data = await searchClients({ query, active: true });
       setClients(Array.isArray(data) ? data : data.content || []);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Nu am putut încărca lista de clienți."));
+      setError(
+        getApiErrorMessage(err, "Nu am putut încărca lista de clienți."),
+      );
     } finally {
       setLoadingClients(false);
     }
@@ -115,17 +128,26 @@ export default function EditAppointmentPage() {
 
       if (name === "appointmentType") {
         next.participantClientIds = [];
-        next.capacity = value === "INDIVIDUAL" ? 1 : Math.max(Number(prev.capacity) || 2, 2);
+        next.capacity =
+          value === "INDIVIDUAL" ? 1 : Math.max(Number(prev.capacity) || 2, 2);
         setSelectedClients([]);
       }
 
       if (name === "serviceId") {
         const service = options.services.find((item) => item.id === value);
-        next.endTime = calculateEndTime(next.startTime, service?.defaultDurationMinutes, prev.endTime);
+        next.endTime = calculateEndTime(
+          next.startTime,
+          service?.defaultDurationMinutes,
+          prev.endTime,
+        );
       }
 
       if (name === "startTime") {
-        next.endTime = calculateEndTime(value, selectedService?.defaultDurationMinutes, prev.endTime);
+        next.endTime = calculateEndTime(
+          value,
+          selectedService?.defaultDurationMinutes,
+          prev.endTime,
+        );
       }
 
       return next;
@@ -138,7 +160,10 @@ export default function EditAppointmentPage() {
       ...prev,
       appointmentType,
       participantClientIds: [],
-      capacity: appointmentType === "INDIVIDUAL" ? 1 : Math.max(Number(prev.capacity) || 2, 2),
+      capacity:
+        appointmentType === "INDIVIDUAL"
+          ? 1
+          : Math.max(Number(prev.capacity) || 2, 2),
     }));
   };
 
@@ -183,7 +208,11 @@ export default function EditAppointmentPage() {
       return {
         ...prev,
         participantClientIds,
-        capacity: Math.max(Number(prev.capacity) || 2, participantClientIds.length, 2),
+        capacity: Math.max(
+          Number(prev.capacity) || 2,
+          participantClientIds.length,
+          2,
+        ),
       };
     });
   };
@@ -216,7 +245,9 @@ export default function EditAppointmentPage() {
   };
 
   if (loading) {
-    return <div className="page-loading">Se încarcă formularul de editare...</div>;
+    return (
+      <div className="page-loading">Se încarcă formularul de editare...</div>
+    );
   }
 
   if (!appointment) {
@@ -236,7 +267,12 @@ export default function EditAppointmentPage() {
     );
   }
 
-  const isCancelled = appointment.status === "CANCELLED";
+  const isCancelled = appointment?.status === "CANCELLED";
+
+  const cancelledEditMessage =
+    "Programarea este anulată. Statusul este final și această programare nu mai poate fi editată. Dacă vrei să refaci rezervarea, creează o programare nouă.";
+  const statusInfoMessage =
+    "Pentru schimbarea statusului folosește pagina de detalii. Endpointul de update păstrează statusul existent.";
 
   return (
     <section>
@@ -244,10 +280,16 @@ export default function EditAppointmentPage() {
         <div>
           <p className="page-kicker">Administrare programări</p>
           <h1>Editează programarea</h1>
-          <p>Modifică datele programării. Statusul se schimbă separat din pagina de detalii.</p>
+          <p>
+            Modifică datele programării. Statusul se schimbă separat din pagina
+            de detalii.
+          </p>
         </div>
         <div className="header-actions">
-          <Link className="secondary-link-button" to={`/admin/programari/${id}`}>
+          <Link
+            className="secondary-link-button"
+            to={`/admin/programari/${id}`}
+          >
             Înapoi la detalii
           </Link>
           <Link className="secondary-link-button" to="/admin/programari">
@@ -258,13 +300,16 @@ export default function EditAppointmentPage() {
 
       {isCancelled && (
         <div className="info-banner">
-          Programarea este anulată. Backend-ul nu permite modificarea programărilor anulate.
+          Programarea este anulată. Backend-ul nu permite modificarea
+          programărilor anulate.
         </div>
       )}
 
-      <div className="info-banner">
-        Pentru schimbarea statusului folosește pagina de detalii. Endpointul de update păstrează statusul existent.
-      </div>
+      {isCancelled ? (
+        <div className="warning-banner">{}</div>
+      ) : (
+        <div className="info-banner">{statusInfoMessage}</div>
+      )}
 
       {error && <div className="form-error">{error}</div>}
       {validationErrors.length > 0 && (
@@ -326,7 +371,13 @@ export default function EditAppointmentPage() {
           <div className="form-grid">
             <label>
               Serviciu
-              <select name="serviceId" value={form.serviceId} onChange={handleChange} disabled={isCancelled} required>
+              <select
+                name="serviceId"
+                value={form.serviceId}
+                onChange={handleChange}
+                disabled={isCancelled}
+                required
+              >
                 <option value="">Selectează serviciul</option>
                 {options.services.map((service) => (
                   <option key={service.id} value={service.id}>
@@ -338,17 +389,30 @@ export default function EditAppointmentPage() {
 
             <label>
               Instructor
-              <select name="instructorId" value={form.instructorId} onChange={handleChange} disabled={isCancelled} required>
+              <select
+                name="instructorId"
+                value={form.instructorId}
+                onChange={handleChange}
+                disabled={isCancelled}
+                required
+              >
                 <option value="">Selectează instructorul</option>
                 {options.instructors.map((instructor) => (
-                  <option key={instructor.id} value={instructor.id}>{instructor.fullName}</option>
+                  <option key={instructor.id} value={instructor.id}>
+                    {instructor.fullName}
+                  </option>
                 ))}
               </select>
             </label>
 
             <label>
               Resursă
-              <select name="resourceId" value={form.resourceId} onChange={handleChange} disabled={isCancelled}>
+              <select
+                name="resourceId"
+                value={form.resourceId}
+                onChange={handleChange}
+                disabled={isCancelled}
+              >
                 <option value="">Fără resursă</option>
                 {options.resources.map((resource) => (
                   <option key={resource.id} value={resource.id}>
@@ -370,17 +434,38 @@ export default function EditAppointmentPage() {
           <div className="form-grid">
             <label>
               Data
-              <input type="date" name="date" value={form.date} onChange={handleChange} disabled={isCancelled} required />
+              <input
+                type="date"
+                name="date"
+                value={form.date}
+                onChange={handleChange}
+                disabled={isCancelled}
+                required
+              />
             </label>
 
             <label>
               Ora început
-              <input type="time" name="startTime" value={form.startTime} onChange={handleChange} disabled={isCancelled} required />
+              <input
+                type="time"
+                name="startTime"
+                value={form.startTime}
+                onChange={handleChange}
+                disabled={isCancelled}
+                required
+              />
             </label>
 
             <label>
               Ora sfârșit
-              <input type="time" name="endTime" value={form.endTime} onChange={handleChange} disabled={isCancelled} required />
+              <input
+                type="time"
+                name="endTime"
+                value={form.endTime}
+                onChange={handleChange}
+                disabled={isCancelled}
+                required
+              />
             </label>
 
             <label>
@@ -414,15 +499,28 @@ export default function EditAppointmentPage() {
 
         <div className="form-summary-card">
           <strong>Rezumat</strong>
-          <p>{form.appointmentType === "INDIVIDUAL" ? "Programare individuală" : "Programare de grup"}</p>
+          <p>
+            {form.appointmentType === "INDIVIDUAL"
+              ? "Programare individuală"
+              : "Programare de grup"}
+          </p>
           <p>Participanți selectați: {form.participantClientIds.length}</p>
           <p>Capacitate: {form.capacity || "-"}</p>
           <p>Status păstrat: {form.status}</p>
         </div>
 
         <div className="modal-actions">
-          <Link className="secondary-link-button" to={`/admin/programari/${id}`}>Renunță</Link>
-          <button className="primary-button" type="submit" disabled={saving || isCancelled}>
+          <Link
+            className="secondary-link-button"
+            to={`/admin/programari/${id}`}
+          >
+            Renunță
+          </Link>
+          <button
+            className="primary-button"
+            type="submit"
+            disabled={saving || isCancelled}
+          >
             {saving ? "Se salvează..." : "Salvează modificările"}
           </button>
         </div>
@@ -431,13 +529,26 @@ export default function EditAppointmentPage() {
   );
 }
 
-function ClientPicker({ clients, loading, selectedIds, appointmentType, disabled, onToggle }) {
+function ClientPicker({
+  clients,
+  loading,
+  selectedIds,
+  appointmentType,
+  disabled,
+  onToggle,
+}) {
   if (loading) {
-    return <div className="page-loading compact-loading">Se caută clienții...</div>;
+    return (
+      <div className="page-loading compact-loading">Se caută clienții...</div>
+    );
   }
 
   if (!clients.length) {
-    return <div className="empty-state compact-empty">Nu am găsit clienți activi pentru căutarea curentă.</div>;
+    return (
+      <div className="empty-state compact-empty">
+        Nu am găsit clienți activi pentru căutarea curentă.
+      </div>
+    );
   }
 
   return (
@@ -448,17 +559,26 @@ function ClientPicker({ clients, loading, selectedIds, appointmentType, disabled
         return (
           <button
             key={client.id}
-            className={selected ? "client-picker-item selected" : "client-picker-item"}
+            className={
+              selected ? "client-picker-item selected" : "client-picker-item"
+            }
             type="button"
             disabled={disabled}
             onClick={() => onToggle(client)}
           >
             <span className="client-picker-main">
               <strong>{client.fullName}</strong>
-              <small>{client.email || "Fără email"} · {client.phone || "Fără telefon"}</small>
+              <small>
+                {client.email || "Fără email"} ·{" "}
+                {client.phone || "Fără telefon"}
+              </small>
             </span>
             <span className="status-pill">
-              {selected ? "Selectat" : appointmentType === "INDIVIDUAL" ? "Alege" : "Adaugă"}
+              {selected
+                ? "Selectat"
+                : appointmentType === "INDIVIDUAL"
+                  ? "Alege"
+                  : "Adaugă"}
             </span>
           </button>
         );
@@ -482,7 +602,9 @@ function fromAppointmentToForm(appointment) {
     status: appointment.status || "SCHEDULED",
     capacity: appointment.capacity || 1,
     notes: appointment.notes || "",
-    participantClientIds: (appointment.participants || []).map((participant) => participant.clientId),
+    participantClientIds: (appointment.participants || []).map(
+      (participant) => participant.clientId,
+    ),
   };
 }
 
@@ -535,13 +657,18 @@ function validateForm(form) {
     errors.push("Selectează cel puțin un client.");
   }
 
-  if (form.appointmentType === "INDIVIDUAL" && form.participantClientIds.length !== 1) {
+  if (
+    form.appointmentType === "INDIVIDUAL" &&
+    form.participantClientIds.length !== 1
+  ) {
     errors.push("Programarea individuală poate avea un singur client.");
   }
 
   if (form.appointmentType === "GROUP") {
     if (Number(form.capacity) < 2) {
-      errors.push("Programarea de grup trebuie să aibă o capacitate de minimum 2.");
+      errors.push(
+        "Programarea de grup trebuie să aibă o capacitate de minimum 2.",
+      );
     }
 
     if (Number(form.capacity) < form.participantClientIds.length) {

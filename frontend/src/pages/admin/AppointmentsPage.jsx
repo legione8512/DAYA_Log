@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   cancelAppointment,
+  changeAppointmentStatus,
   getAdminAppointments,
   sendAppointmentConfirmation,
 } from "../../api/appointmentApi";
@@ -72,9 +73,25 @@ export default function AppointmentsPage() {
 
     try {
       const response = await sendAppointmentConfirmation(id);
-      setSuccess(response?.message || "Emailul de confirmare a fost trimis.");
+      setSuccess(response?.message || "Emailul de confirmare a fost trimis. Statusul programării nu a fost schimbat automat.");
     } catch (err) {
       setError(getApiErrorMessage(err, "Nu am putut trimite emailul de confirmare."));
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleMarkConfirmed = async (id) => {
+    setActionLoadingId(id);
+    setError("");
+    setSuccess("");
+
+    try {
+      await changeAppointmentStatus(id, "CONFIRMED");
+      setSuccess("Programarea a fost marcată ca CONFIRMED.");
+      await loadAppointments(filters);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Nu am putut marca programarea drept confirmată."));
     } finally {
       setActionLoadingId(null);
     }
@@ -163,6 +180,7 @@ export default function AppointmentsPage() {
           appointments={appointments}
           actionLoadingId={actionLoadingId}
           onCancel={handleCancel}
+          onMarkConfirmed={handleMarkConfirmed}
           onSendConfirmation={handleSendConfirmation}
         />
       )}
@@ -176,7 +194,7 @@ export default function AppointmentsPage() {
   );
 }
 
-function AppointmentsTable({ appointments, actionLoadingId, onCancel, onSendConfirmation }) {
+function AppointmentsTable({ appointments, actionLoadingId, onCancel, onMarkConfirmed, onSendConfirmation }) {
   if (!appointments.length) {
     return <div className="empty-state">Nu există programări pentru filtrele selectate.</div>;
   }
@@ -220,7 +238,15 @@ function AppointmentsTable({ appointments, actionLoadingId, onCancel, onSendConf
                     disabled={actionLoadingId === appointment.id}
                     onClick={() => onSendConfirmation(appointment.id)}
                   >
-                    Confirmare
+                    Trimite email
+                  </button>
+                  <button
+                    className="small-button"
+                    type="button"
+                    disabled={actionLoadingId === appointment.id || appointment.status === "CONFIRMED" || appointment.status === "CANCELLED"}
+                    onClick={() => onMarkConfirmed(appointment.id)}
+                  >
+                    Marchează CONFIRMED
                   </button>
                   <button
                     className="small-button danger"
