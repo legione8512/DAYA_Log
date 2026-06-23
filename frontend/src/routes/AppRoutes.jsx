@@ -11,6 +11,7 @@ import UnauthorizedPage from "../pages/UnauthorizedPage";
 import NotFoundPage from "../pages/NotFoundPage";
 
 import LandingPage from "../pages/LandingPage";
+import InfoPage from "../pages/InfoPage";
 
 import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
 import AppointmentsPage from "../pages/admin/AppointmentsPage";
@@ -93,6 +94,7 @@ export default function AppRoutes() {
       </Route>
 
       <Route path="/" element={<LandingPage />} />
+      <Route path="/informatii" element={<InfoPage />} />
       <Route path="/app" element={<RootRedirect />} />
 
       <Route element={<ProtectedRoute />}>
