@@ -3,11 +3,15 @@ import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
 import ClientLayout from "../layouts/ClientLayout";
 import LoginPage from "../pages/LoginPage";
+<<<<<<< HEAD
 import RequestPasswordResetPage from "../pages/RequestPasswordResetPage";
 import ConfirmPasswordResetPage from "../pages/ConfirmPasswordResetPage";
 import ConfirmEmailPage from "../pages/ConfirmEmailPage";
 import UnauthorizedPage from "../pages/UnauthorizedPage";
 import NotFoundPage from "../pages/NotFoundPage";
+=======
+import LandingPage from "../pages/LandingPage";
+>>>>>>> 9fa8d39 (Preparing for production)
 import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
 import AppointmentsPage from "../pages/admin/AppointmentsPage";
 import CreateAppointmentPage from "../pages/admin/CreateAppointmentPage";
@@ -88,6 +92,7 @@ export default function AppRoutes() {
         </Route>
       </Route>
 
+<<<<<<< HEAD
       <Route element={<ProtectedRoute />}>
         <Route path="/profil" element={<ProfilePage />} />
       </Route>
@@ -95,6 +100,10 @@ export default function AppRoutes() {
       <Route path="/" element={<RootRedirect />} />
       <Route path="/neautorizat" element={<UnauthorizedPage />} />
       <Route path="*" element={<NotFoundPage />} />
+=======
+      <Route path="/" element={<LandingPage />} />
+      <Route path="*" element={<Navigate to="/autentificare" replace />} />
+>>>>>>> 9fa8d39 (Preparing for production)
     </Routes>
   );
 }
