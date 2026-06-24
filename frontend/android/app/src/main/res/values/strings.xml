@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DAYA Log</string>
+    <string name="title_activity_main">DAYA Log</string>
+    <string name="package_name">com.cyberhalf.dayalog</string>
+    <string name="custom_url_scheme">com.cyberhalf.dayalog</string>
+</resources>
