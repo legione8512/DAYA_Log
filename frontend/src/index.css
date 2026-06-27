@@ -119,3 +119,58 @@ body,
 body {
   overflow-x: hidden;
 }
+:root {
+  --app-safe-top: env(safe-area-inset-top, 0px);
+  --app-safe-right: env(safe-area-inset-right, 0px);
+  --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --app-safe-left: env(safe-area-inset-left, 0px);
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100dvh;
+  box-sizing: border-box;
+}
+
+/* iOS / notch safety for full-page layouts */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .state-page,
+  .auth-page,
+  .admin-shell,
+  .admin-layout,
+  .client-shell,
+  .client-layout,
+  .dashboard-page,
+  .page-shell,
+  .page-layout,
+  .info-page,
+  .landing-page {
+    padding-top: max(18px, var(--app-safe-top));
+    padding-left: var(--app-safe-left);
+    padding-right: var(--app-safe-right);
+    box-sizing: border-box;
+  }
+
+  .admin-header,
+  .client-header,
+  .app-header,
+  .topbar,
+  .navbar {
+    padding-top: var(--app-safe-top);
+    box-sizing: border-box;
+  }
+
+  main {
+    scroll-padding-top: calc(var(--app-safe-top) + 16px);
+  }
+}

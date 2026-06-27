@@ -1,5 +1,16 @@
 {
   "appId": "com.cyberhalf.dayalog",
   "appName": "DAYA Log",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "DARK",
+      "backgroundColor": "#F7EFE8"
+    },
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "backgroundColor": "#F7EFE8"
+    }
+  }
 }

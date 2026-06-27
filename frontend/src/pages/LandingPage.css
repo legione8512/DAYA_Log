@@ -52,8 +52,8 @@
 
 .landing-auth-button {
   position: fixed;
-  top: 28px;
-  right: 32px;
+  top: calc(env(safe-area-inset-top, 0px) + 18px);
+  right: calc(env(safe-area-inset-right, 0px) + 24px);
   padding: 13px 24px;
   background: #2f2927;
   color: #fff8f3;
@@ -93,10 +93,10 @@
   }
 
   .landing-auth-button {
-    top: 18px;
-    right: 18px;
-    padding: 12px 18px;
-    font-size: 0.92rem;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  right: calc(env(safe-area-inset-right, 0px) + 18px);
+  padding: 12px 18px;
+  font-size: 0.92rem;
   }
 
   .landing-info-button {
