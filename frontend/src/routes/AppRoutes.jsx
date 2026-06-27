@@ -12,6 +12,7 @@ import NotFoundPage from "../pages/NotFoundPage";
 
 import LandingPage from "../pages/LandingPage";
 import InfoPage from "../pages/InfoPage";
+import PrivacyPolicyPage from "../pages/PrivacyPolicyPage";
 
 import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
 import AppointmentsPage from "../pages/admin/AppointmentsPage";
@@ -95,6 +96,7 @@ export default function AppRoutes() {
 
       <Route path="/" element={<LandingPage />} />
       <Route path="/informatii" element={<InfoPage />} />
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
       <Route path="/app" element={<RootRedirect />} />
 
       <Route element={<ProtectedRoute />}>
